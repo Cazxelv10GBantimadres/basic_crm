@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CRM Firebase</title>
+  <link rel="stylesheet" href="style.css">
+
+  <!-- Firebase SDKs (compat para usar sin bundlers) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+</head>
+
+<body>
+  <h1>CRM - Gestión de Clientes y Ventas</h1>
+
+  <!-- ACCESO -->
+  <section>
+    <h2>Acceso</h2>
+    <input type="email" id="email" placeholder="Correo">
+    <input type="password" id="password" placeholder="Contraseña">
+    <div>
+      <button onclick="registroSeguro()">Registrarse</button>
+      <button onclick="loginSeguro()">Iniciar Sesión</button>
+      <button onclick="logout()">Cerrar Sesión</button>
+    </div>
+    <p id="user-info">No autenticado</p>
+  </section>
+
+  <!-- REGISTRO CLIENTE -->
+  <section>
+    <h2>Registrar Cliente</h2>
+    <input id="cliente-nombre" placeholder="Nombre (obligatorio)">
+    <input id="cliente-contacto" placeholder="Contacto (obligatorio)">
+    <input id="cliente-direccion" placeholder="Dirección">
+    <textarea id="cliente-obs" placeholder="Observaciones"></textarea>
+    <button onclick="registrarClienteSeguro()">Guardar Cliente</button>
+  </section>
+
+  <!-- REGISTRO VENTA -->
+  <section>
+    <h2>Registrar Venta</h2>
+    <input id="venta-cliente" placeholder="ID Cliente (obligatorio)">
+    <input id="venta-productos" placeholder="Productos vendidos">
+    <input id="venta-monto" type="number" placeholder="Monto total">
+    <input id="venta-fecha" type="date">
+    <input id="venta-medio" placeholder="Medio de pago">
+    <button onclick="registrarVentaSeguro()">Guardar Venta</button>
+  </section>
+
+  <!-- REPORTES -->
+  <section>
+    <h2>Reportes</h2>
+    <button onclick="generarReporteSeguro()">Ver Ventas Totales</button>
+    <pre id="reporte-output"></pre>
+  </section>
+
+  <!-- CARGA DE SCRIPTS -->
+  <script src="firebase-config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
