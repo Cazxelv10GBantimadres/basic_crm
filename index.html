@@ -6,7 +6,7 @@
   <title>CRM Firebase</title>
   <link rel="stylesheet" href="style.css">
 
-  <!-- Firebase SDKs (compat para usar sin bundlers) -->
+  <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
@@ -24,6 +24,7 @@
       <button onclick="registroSeguro()">Registrarse</button>
       <button onclick="loginSeguro()">Iniciar Sesión</button>
       <button onclick="logout()">Cerrar Sesión</button>
+      <button onclick="recuperarContrasena()">¿Olvidaste tu contraseña?</button>
     </div>
     <p id="user-info">No autenticado</p>
   </section>
@@ -52,12 +53,19 @@
   <!-- REPORTES -->
   <section>
     <h2>Reportes</h2>
-    <button onclick="generarReporteSeguro()">Ver Ventas Totales</button>
+    <button onclick="generarReporteSeguro()">📊 Ver Ventas Totales</button>
+    <button onclick="descargarPDFSeguro()">📄 Descargar PDF</button>
     <pre id="reporte-output"></pre>
   </section>
 
-  <!-- CARGA DE SCRIPTS -->
+  <!-- CONTENEDOR DE NOTIFICACIONES -->
+  <div id="notificacion-container"></div>
+
+  <!-- CONFIGURACIÓN -->
   <script src="firebase-config.js"></script>
   <script src="app.js"></script>
+
+  <!-- jsPDF para PDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </body>
 </html>
