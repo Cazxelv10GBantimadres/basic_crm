@@ -1,30 +1,40 @@
-// === Verificar autenticación al iniciar ===
+// === Estado de autenticación ===
 auth.onAuthStateChanged(user => {
   const info = document.getElementById("user-info");
   info.textContent = user ? "Usuario: " + user.email : "No autenticado";
 });
 
-// === Función auxiliar para mostrar notificaciones ===
+// === Notificaciones popup ===
 function mostrarMensaje(texto, tipo = "info") {
   const colores = {
-    info: "#007BFF",
+    info: "#6c63ff",
     success: "#28a745",
     error: "#dc3545"
   };
+
+  let contenedor = document.getElementById("notificacion-container");
+  if (!contenedor) {
+    contenedor = document.createElement("div");
+    contenedor.id = "notificacion-container";
+    document.body.appendChild(contenedor);
+  }
+
   const msg = document.createElement("div");
   msg.textContent = texto;
-  msg.style.background = colores[tipo] || "#000";
+  msg.style.background = colores[tipo];
   msg.style.color = "#fff";
-  msg.style.padding = "10px";
+  msg.style.padding = "10px 20px";
   msg.style.marginTop = "10px";
   msg.style.borderRadius = "8px";
   msg.style.fontWeight = "bold";
-  msg.style.boxShadow = "0 4px 8px rgba(0,0,0,0.3)";
-  document.body.appendChild(msg);
+  msg.style.textAlign = "center";
+  msg.style.fontSize = "16px";
+  msg.style.animation = "slideFade 0.4s ease";
+  contenedor.appendChild(msg);
   setTimeout(() => msg.remove(), 4000);
 }
 
-// === Función de protección contra spam ===
+// === Función antispam ===
 function throttleAction(callback, delay = 5000) {
   let lastRun = 0;
   return function (...args) {
@@ -38,7 +48,7 @@ function throttleAction(callback, delay = 5000) {
   };
 }
 
-// === Registro de usuario ===
+// === Registro/Login/Logout ===
 function register() {
   const email = document.getElementById("email").value.trim();
   const password = document.getElementById("password").value;
@@ -49,7 +59,6 @@ function register() {
     .catch(err => mostrarMensaje("Error: " + err.message, "error"));
 }
 
-// === Login de usuario ===
 function login() {
   const email = document.getElementById("email").value.trim();
   const password = document.getElementById("password").value;
@@ -63,7 +72,6 @@ function login() {
     .catch(err => mostrarMensaje("Error: " + err.message, "error"));
 }
 
-// === Cerrar sesión ===
 function logout() {
   auth.signOut().then(() => {
     document.getElementById("user-info").textContent = "Sesión cerrada";
@@ -71,7 +79,16 @@ function logout() {
   });
 }
 
-// === Registrar Cliente ===
+function recuperarContrasena() {
+  const email = document.getElementById("email").value.trim();
+  if (!email) return mostrarMensaje("Ingresa tu correo para recuperar contraseña.", "error");
+
+  auth.sendPasswordResetEmail(email)
+    .then(() => mostrarMensaje("📧 Revisa tu correo para restablecer tu contraseña.", "success"))
+    .catch(err => mostrarMensaje("Error: " + err.message, "error"));
+}
+
+// === Cliente ===
 function registrarCliente() {
   const nombre = document.getElementById("cliente-nombre").value.trim();
   const contacto = document.getElementById("cliente-contacto").value.trim();
@@ -82,21 +99,15 @@ function registrarCliente() {
     return mostrarMensaje("Faltan campos obligatorios (nombre, contacto)", "error");
 
   db.collection("clientes").add({
-    nombre,
-    contacto,
-    direccion,
-    observaciones,
+    nombre, contacto, direccion, observaciones,
     timestamp: firebase.firestore.FieldValue.serverTimestamp()
   }).then(() => {
     mostrarMensaje("✅ Cliente registrado", "success");
-    document.getElementById("cliente-nombre").value = "";
-    document.getElementById("cliente-contacto").value = "";
-    document.getElementById("cliente-direccion").value = "";
-    document.getElementById("cliente-obs").value = "";
+    ["cliente-nombre", "cliente-contacto", "cliente-direccion", "cliente-obs"].forEach(id => document.getElementById(id).value = "");
   }).catch(err => mostrarMensaje("Error al guardar cliente: " + err.message, "error"));
 }
 
-// === Registrar Venta ===
+// === Venta ===
 function registrarVenta() {
   const clienteId = document.getElementById("venta-cliente").value.trim();
   const productos = document.getElementById("venta-productos").value.trim();
@@ -108,26 +119,18 @@ function registrarVenta() {
     return mostrarMensaje("Completa todos los campos de venta.", "error");
 
   db.collection("ventas").add({
-    clienteId,
-    productos,
-    monto,
-    fecha,
-    medioPago,
+    clienteId, productos, monto, fecha, medioPago,
     timestamp: firebase.firestore.FieldValue.serverTimestamp()
   }).then(() => {
     mostrarMensaje("✅ Venta registrada", "success");
-    document.getElementById("venta-cliente").value = "";
-    document.getElementById("venta-productos").value = "";
-    document.getElementById("venta-monto").value = "";
-    document.getElementById("venta-fecha").value = "";
-    document.getElementById("venta-medio").value = "";
+    ["venta-cliente", "venta-productos", "venta-monto", "venta-fecha", "venta-medio"].forEach(id => document.getElementById(id).value = "");
   }).catch(err => {
     console.error("Error al registrar venta:", err);
     mostrarMensaje("Error al guardar venta: " + err.message, "error");
   });
 }
 
-// === Generar Reporte ===
+// === Reporte visual ===
 function generarReporte() {
   db.collection("ventas").orderBy("timestamp", "desc").get().then(snapshot => {
     let total = 0;
@@ -144,9 +147,29 @@ function generarReporte() {
   });
 }
 
-// === Versión segura de funciones (antispam) ===
+// === Descargar PDF directamente ===
+async function descargarPDF() {
+  const snapshot = await db.collection("ventas").orderBy("timestamp", "desc").get();
+  let total = 0;
+  let texto = "📦 Historial de Ventas:\n\n";
+  snapshot.forEach(doc => {
+    const d = doc.data();
+    total += d.monto;
+    texto += `Cliente: ${d.clienteId}\nProducto: ${d.productos}\nMonto: $${d.monto}\nFecha: ${d.fecha}\n\n`;
+  });
+  texto += `\nTOTAL VENDIDO: $${total.toFixed(2)}`;
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  doc.setFontSize(12);
+  doc.text(texto, 10, 30); // <- Aumentamos margen Y
+  doc.save("reporte_ventas.pdf");
+}
+
+// === Versiones antispam ===
 const registroSeguro = throttleAction(register, 5000);
 const loginSeguro = throttleAction(login, 5000);
 const registrarClienteSeguro = throttleAction(registrarCliente, 4000);
 const registrarVentaSeguro = throttleAction(registrarVenta, 4000);
 const generarReporteSeguro = throttleAction(generarReporte, 4000);
+const descargarPDFSeguro = throttleAction(descargarPDF, 3000);
