@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>CRM Firebase</title>
+  <title>CRM Firebase - VioStore S.A</title>
   <link rel="stylesheet" href="style.css">
 
   <!-- Firebase SDKs -->
@@ -13,7 +13,7 @@
 </head>
 
 <body>
-  <h1>CRM - Gestión de Clientes y Ventas</h1>
+  <h1>VioStore S.A</h1>
 
   <!-- ACCESO -->
   <section>
@@ -53,19 +53,17 @@
   <!-- REPORTES -->
   <section>
     <h2>Reportes</h2>
-    <button onclick="generarReporteSeguro()">📊 Ver Ventas Totales</button>
-    <button onclick="descargarPDFSeguro()">📄 Descargar PDF</button>
+    <button onclick="generarReporteSeguro()">Ver Ventas Totales</button>
+    <button onclick="descargarPDFSeguro()">Descargar PDF</button>
     <pre id="reporte-output"></pre>
   </section>
 
   <!-- CONTENEDOR DE NOTIFICACIONES -->
   <div id="notificacion-container"></div>
 
-  <!-- CONFIGURACIÓN -->
+  <!-- SCRIPTS -->
   <script src="firebase-config.js"></script>
   <script src="app.js"></script>
-
-  <!-- jsPDF para PDF -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </body>
 </html>
