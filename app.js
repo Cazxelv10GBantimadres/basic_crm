@@ -35,7 +35,7 @@ function mostrarMensaje(texto, tipo = "info", duracion = 4000) {
   setTimeout(() => msg.remove(), duracion);
 }
 
-// === Generador de ID cliente ===
+// === Generador de ID cliente único ===
 function generarIDCliente() {
   return 'CLT-' + Math.random().toString(36).substring(2, 8).toUpperCase();
 }
@@ -49,7 +49,7 @@ function throttleAction(callback, delay = 5000) {
       lastRun = now;
       callback.apply(this, args);
     } else {
-      mostrarMensaje("⚠️ Espera unos segundos antes de volver a intentarlo.", "info");
+      mostrarMensaje("Espera unos segundos antes de volver a intentarlo.", "info");
     }
   };
 }
@@ -60,7 +60,7 @@ function register() {
   const password = document.getElementById("password").value;
   if (!email || !password) return mostrarMensaje("Completa email y contraseña.", "error");
   auth.createUserWithEmailAndPassword(email, password)
-    .then(() => mostrarMensaje("✅ Registro exitoso", "success"))
+    .then(() => mostrarMensaje("Registro exitoso", "success"))
     .catch(err => mostrarMensaje("Error: " + err.message, "error"));
 }
 
@@ -71,7 +71,7 @@ function login() {
   auth.signInWithEmailAndPassword(email, password)
     .then(user => {
       document.getElementById("user-info").textContent = "Usuario: " + user.user.email;
-      mostrarMensaje("✅ Sesión iniciada", "success");
+      mostrarMensaje("Sesión iniciada", "success");
     })
     .catch(err => mostrarMensaje("Error: " + err.message, "error"));
 }
@@ -79,7 +79,7 @@ function login() {
 function logout() {
   auth.signOut().then(() => {
     document.getElementById("user-info").textContent = "Sesión cerrada";
-    mostrarMensaje("🔒 Has cerrado sesión", "info");
+    mostrarMensaje("Has cerrado sesión", "info");
   });
 }
 
@@ -87,24 +87,54 @@ function recuperarContrasena() {
   const email = document.getElementById("email").value.trim();
   if (!email) return mostrarMensaje("Ingresa tu correo para recuperar contraseña.", "error");
   auth.sendPasswordResetEmail(email)
-    .then(() => mostrarMensaje("📧 Revisa tu correo para restablecer tu contraseña.", "success"))
+    .then(() => mostrarMensaje("Revisa tu correo para restablecer tu contraseña.", "success"))
     .catch(err => mostrarMensaje("Error: " + err.message, "error"));
 }
 
-// === Registrar Cliente ===
-function registrarCliente() {
+// === Registrar Cliente con validación de ID único ===
+async function registrarCliente() {
   const nombre = document.getElementById("cliente-nombre").value.trim();
   const contacto = document.getElementById("cliente-contacto").value.trim();
   const direccion = document.getElementById("cliente-direccion").value.trim();
   const observaciones = document.getElementById("cliente-obs").value.trim();
+  const idInput = document.getElementById("cliente-id");
 
-  if (!nombre || !contacto) return mostrarMensaje("Faltan campos obligatorios (nombre, contacto)", "error");
+  if (!nombre || !contacto) {
+    return mostrarMensaje("Faltan campos obligatorios (nombre, contacto)", "error");
+  }
 
-  let clienteId = prompt("Ingresa ID Cliente (RUT o personal). Si dejas vacío, se generará uno aleatorio:");
+  let clienteId = idInput.value.trim();
+
   if (!clienteId) {
-    clienteId = generarIDCliente();
-    navigator.clipboard.writeText(clienteId);
-    mostrarMensaje(`ID generado: ${clienteId} (copiado al portapapeles)`, "info", 15000);
+    const confirmar = confirm("No ingresaste un ID de cliente. ¿Deseas generar uno automáticamente?");
+    if (!confirmar) {
+      return mostrarMensaje("Ingresa un ID cliente antes de continuar.", "error");
+    }
+
+    let intentos = 0;
+    let idUnico = false;
+
+    while (!idUnico && intentos < 5) {
+      clienteId = generarIDCliente();
+      const doc = await db.collection("clientes").doc(clienteId).get();
+      if (!doc.exists) {
+        idUnico = true;
+      } else {
+        intentos++;
+      }
+    }
+
+    if (!idUnico) {
+      return mostrarMensaje("No se pudo generar un ID único. Intenta nuevamente.", "error");
+    }
+
+    idInput.value = clienteId;
+    try {
+      await navigator.clipboard.writeText(clienteId);
+      mostrarMensaje(`ID generado: ${clienteId} (copiado al portapapeles)`, "info", 10000);
+    } catch {
+      mostrarMensaje(`ID generado: ${clienteId}. No se pudo copiar automáticamente.`, "info", 10000);
+    }
   }
 
   db.collection("clientes").doc(clienteId).set({
@@ -115,33 +145,49 @@ function registrarCliente() {
     observaciones,
     timestamp: firebase.firestore.FieldValue.serverTimestamp()
   }).then(() => {
-    mostrarMensaje("✅ Cliente registrado", "success");
-    ["cliente-nombre", "cliente-contacto", "cliente-direccion", "cliente-obs"].forEach(id => document.getElementById(id).value = "");
+    mostrarMensaje("Cliente registrado", "success");
+    ["cliente-id", "cliente-nombre", "cliente-contacto", "cliente-direccion", "cliente-obs"].forEach(id => {
+      document.getElementById(id).value = "";
+    });
   }).catch(err => mostrarMensaje("Error al guardar cliente: " + err.message, "error"));
 }
 
-// === Registrar Venta ===
-function registrarVenta() {
+// === Registrar Venta con validación de ID cliente existente ===
+async function registrarVenta() {
   const clienteId = document.getElementById("venta-cliente").value.trim();
   const productos = document.getElementById("venta-productos").value.trim();
   const monto = parseFloat(document.getElementById("venta-monto").value);
   const fecha = document.getElementById("venta-fecha").value;
   const medioPago = document.getElementById("venta-medio").value.trim();
 
-  if (!clienteId || !productos || isNaN(monto) || !fecha || !medioPago)
+  if (!clienteId || !productos || isNaN(monto) || !fecha || !medioPago) {
     return mostrarMensaje("Completa todos los campos de venta.", "error");
+  }
 
-  db.collection("ventas").add({
-    clienteId,
-    productos,
-    monto,
-    fecha,
-    medioPago,
-    timestamp: firebase.firestore.FieldValue.serverTimestamp()
-  }).then(() => {
-    mostrarMensaje("✅ Venta registrada", "success");
-    ["venta-cliente", "venta-productos", "venta-monto", "venta-fecha", "venta-medio"].forEach(id => document.getElementById(id).value = "");
-  }).catch(err => mostrarMensaje("Error al guardar venta: " + err.message, "error"));
+  try {
+    const clienteDoc = await db.collection("clientes").doc(clienteId).get();
+    if (!clienteDoc.exists) {
+      return mostrarMensaje("El ID Cliente no existe en la base de datos.", "error");
+    }
+
+    await db.collection("ventas").add({
+      clienteId,
+      productos,
+      monto,
+      fecha,
+      medioPago,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    mostrarMensaje("Venta registrada", "success");
+
+    ["venta-cliente", "venta-productos", "venta-monto", "venta-fecha", "venta-medio"].forEach(id => {
+      document.getElementById(id).value = "";
+    });
+
+  } catch (error) {
+    mostrarMensaje("Error al guardar venta: " + error.message, "error");
+  }
 }
 
 // === Generar Reporte Visual ===
@@ -206,7 +252,7 @@ async function descargarPDF() {
     doc.save("reporte_ventas.pdf");
   } catch (err) {
     console.error("Error al generar PDF:", err);
-    mostrarMensaje("❌ No se pudo generar el PDF", "error");
+    mostrarMensaje("No se pudo generar el PDF", "error");
   }
 }
 
