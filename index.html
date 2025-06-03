@@ -21,6 +21,10 @@
     <input type="email" id="email" placeholder="Correo">
     <input type="password" id="password" placeholder="Contraseña">
     <div>
+      <input type="checkbox" id="toggle-password" onchange="togglePasswordVisibility()">
+      <label for="toggle-password">Mostrar contraseña</label>
+    </div>
+    <div>
       <button onclick="registroSeguro()">Registrarse</button>
       <button onclick="loginSeguro()">Iniciar Sesión</button>
       <button onclick="logout()">Cerrar Sesión</button>
@@ -32,6 +36,7 @@
   <!-- REGISTRO CLIENTE -->
   <section>
     <h2>Registrar Cliente</h2>
+    <input id="cliente-id" placeholder="ID Cliente (opcional)">
     <input id="cliente-nombre" placeholder="Nombre (obligatorio)">
     <input id="cliente-contacto" placeholder="Contacto (obligatorio)">
     <input id="cliente-direccion" placeholder="Dirección">
@@ -65,5 +70,58 @@
   <script src="firebase-config.js"></script>
   <script src="app.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <script>
+    function togglePasswordVisibility() {
+      const input = document.getElementById('password');
+      input.type = input.type === 'password' ? 'text' : 'password';
+    }
+
+    function generarIDCliente() {
+      const letras = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      const numeros = '0123456789';
+      let id = '';
+      for (let i = 0; i < 3; i++) id += letras.charAt(Math.floor(Math.random() * letras.length));
+      id += '-';
+      for (let i = 0; i < 5; i++) id += numeros.charAt(Math.floor(Math.random() * numeros.length));
+      return id;
+    }
+
+    function registrarClienteSeguro() {
+      const idInput = document.getElementById('cliente-id');
+      const nombre = document.getElementById('cliente-nombre').value.trim();
+      const contacto = document.getElementById('cliente-contacto').value.trim();
+
+      if (!nombre || !contacto) {
+        alert('El nombre y el contacto son obligatorios.');
+        return;
+      }
+
+      let idCliente = idInput.value.trim();
+      if (!idCliente) {
+        const deseaGenerar = confirm('No ingresaste un ID de cliente. ¿Deseas generar uno automáticamente?');
+        if (deseaGenerar) {
+          idCliente = generarIDCliente();
+          idInput.value = idCliente;
+          navigator.clipboard.writeText(idCliente)
+            .then(() => alert('ID generado y copiado al portapapeles: ' + idCliente))
+            .catch(() => alert('ID generado: ' + idCliente + ' (no se pudo copiar automáticamente)'));
+        } else {
+          alert('Por favor, ingresa un ID antes de guardar.');
+          return;
+        }
+      }
+
+      db.collection("clientes").add({
+        id: idCliente,
+        nombre: nombre,
+        contacto: contacto,
+        direccion: document.getElementById('cliente-direccion').value.trim(),
+        observaciones: document.getElementById('cliente-obs').value.trim()
+      })
+      .then(() => alert('Cliente registrado con éxito.'))
+      .catch((error) => alert('Error al registrar cliente: ' + error.message));
+    }
+  </script>
 </body>
 </html>
